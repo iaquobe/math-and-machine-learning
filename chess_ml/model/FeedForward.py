@@ -3,18 +3,24 @@ from .ChessNN import ChessNN
 
 
 class ChessFeedForward(ChessNN): 
-    def __init__(self):
+    def __init__(self, hidden=[600]):
         super().__init__()
-        input_size  = ChessNN.input_size
-        output_size = ChessNN.output_size
-        hidden = 600
+        input  = [ChessNN.input_size]
+        output = [ChessNN.output_size]
+
+        layers = [nn.Linear(*l) for l in zip(input + hidden, hidden + output)]
 
         self.flatten = nn.Flatten(start_dim=0)
         self.stack = nn.Sequential(
-            nn.Linear(input_size, hidden), 
-            nn.ReLU(), 
-            nn.Linear(hidden    , output_size), 
+            *[v 
+                for layer in layers[:-1] 
+                for v in (layer, nn.ReLU())
+            ],
+            layers[-1]
         )
+            
+            
+
 
 
     def forward(self, x):
