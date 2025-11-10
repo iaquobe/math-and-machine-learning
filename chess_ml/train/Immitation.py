@@ -71,13 +71,14 @@ def test(dataloader, model, loss_fn, device="cpu"):
 #### Main
 ################################################################################
 def main():
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     train_dl, test_dl = get_dataloader()
     model             = ChessFeedForward([512, 512, 512])
     optimizer         = torch.optim.Adam(model.parameters(), lr=1e-3)
     loss_fn           = torch.nn.CrossEntropyLoss()
-    train(train_dl, model, loss_fn, optimizer)
+    train(train_dl, model, loss_fn, optimizer, device)
 
-    test(test_dl, model, loss_fn)
+    test(test_dl, model, loss_fn, device)
     torch.save(model, "model.pth")
 
 if __name__ == "__main__":
