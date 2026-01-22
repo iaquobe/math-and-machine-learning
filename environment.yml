@@ -4,9 +4,9 @@ dependencies:
   - pytorch::pytorch-cuda
   - pytorchrl
   - xarray
-  - pandas
+  - pandas>=2.0
   - numpy
-  - tqdm 
+  - tqdm>=4.66
   - chess
   - netcdf4
 
