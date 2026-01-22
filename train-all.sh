@@ -7,14 +7,14 @@ reward_name=$(IFS=_; printf '%s' "${rewards[*]}")
 # install environment when not existing
 if ! conda env list | grep -q chess_ml; then 
 	echo "Installing Conda Environment"
-	dep_env=$(sbatch sbatch/install-env.sh)
+	dep_env=$(sbatch --parsable sbatch/install-env.sh)
 fi
 
 
 # install environment if needed
 if [ ! -f data/gm_games_labeled.csv -a ! -f data/lichess_puzzle_labeled.csv ]; then
 	echo "Downloading Datasets"
-	dep_env=$(sbatch ${dep_env:+--dependency=afterok:$dep_env} sbatch/data-preparation.sh)
+	dep_env=$(sbatch ${dep_env:+--dependency=afterok:$dep_env} --parsable sbatch/data-preparation.sh)
 fi
 
 
