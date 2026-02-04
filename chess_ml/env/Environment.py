@@ -1,4 +1,3 @@
-
 import logging
 import chess
 import chess.pgn

@@ -16,7 +16,7 @@ from torch import device
 from tqdm import tqdm 
 from typing import Union
 
-from chess_ml.data import PuzzleDataset
+from chess_ml.data import MergedDataset, PositionDataset
 from chess_ml.model import ChessNN
 from chess_ml.model.Convolution import ChessCNN
 from chess_ml.model.FeedForward import ChessFeedForward
@@ -25,8 +25,9 @@ from chess_ml.model.ResBlock import ChessResBlock
 ################################################################################
 #### Dataset
 ################################################################################
-def get_dataloader(path, test=0.0, batch_size=256): 
-    dataset         = PuzzleDataset(path=path)
+def get_dataloader(paths, test=0.0, batch_size=256): 
+    # dataset         = MergedDataset(*[PositionDataset(path=path) for path in paths])
+    dataset         = PositionDataset(path=paths)
     size            = int(len(dataset) * (1 - test))
     train_size      = int(0.9 * size)
     val_size       = size - train_size
@@ -98,13 +99,13 @@ def test(dataloader, model, loss_fn, device:Union[str,device]="cpu"):
     test_loss /= num_batches
     correct   /= size
     tqdm.write(f"Test Error: \n Accuracy {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f}")
-    return test_loss
+    return test_loss, correct
 
 
 ################################################################################
 #### Main
 ################################################################################
-def main(*, experiment, epochs, model_path, path, test_holdout, batch_size, architecture, lr=1e-3):
+def main(*, experiment, epochs, model_path, data_paths, test_holdout, batch_size, architecture, lr=1e-3):
     log_dir    = Path("logs/im/{}".format(experiment))
     log_dir.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
@@ -127,7 +128,7 @@ def main(*, experiment, epochs, model_path, path, test_holdout, batch_size, arch
     print("training on {}".format(device))
 
     print("Load Dataset")
-    train_dl, val_dl, test_dl = get_dataloader(path, test_holdout, batch_size)
+    train_dl, val_dl, test_dl = get_dataloader(data_paths, test_holdout, batch_size)
 
     print("Load Model")
     if architecture == 'linear': 
@@ -139,38 +140,35 @@ def main(*, experiment, epochs, model_path, path, test_holdout, batch_size, arch
 
     if model_path is not None: 
         model.load_state_dict(torch.load(model_path))
-    model             = model.to(device)
-    optimizer         = torch.optim.Adam(model.parameters(), lr=lr)
-    loss_fn           = torch.nn.CrossEntropyLoss()
-    min_loss          = float('inf')
+    model     = model.to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    loss_fn   = torch.nn.CrossEntropyLoss()
 
     print("Test Model Pre-Training:")
-    test(val_dl, model, loss_fn, device)
+    _, max_acc = test(val_dl, model, loss_fn, device)
 
     print("Begin Training:")
     for epoch in tqdm(range(epochs), desc="Epochs", unit="Epoch"):
         train(train_dl, model, loss_fn, optimizer, device)
 
-        loss = test(val_dl, model, loss_fn, device)
+        loss, acc = test(val_dl, model, loss_fn, device)
 
-        if loss < min_loss: 
-            min_loss = loss
+        if acc > max_acc: 
+            max_acc = acc
             tqdm.write("Save Checkpoint")
             torch.save(model.state_dict(), models_dir / f"checkpoint-best.pth")
 
 
+    model.load_state_dict(torch.load(models_dir / "checkpoint-best.pth"))
     tqdm.write("Test")
     test(test_dl, model, loss_fn, device)
-
-    print("Save Model")
-    torch.save(model.state_dict(), models_dir / f"final-model.pth")
 
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         prog="imitation learning", 
-        description="transform chess puzzle dataset")
+        description="train with imitation learning")
     parser.add_argument('-e', '--epochs' , default=20, type=int)
     parser.add_argument('-n', '--experiment-name', default=0)
     parser.add_argument('-b', '--batch-size', default=64, type=int)
@@ -179,12 +177,13 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--data', default='./data/lichess_puzzle_labeled.csv')
     parser.add_argument('-t', '--test_holdout', default=0.1, type=float)
     args = parser.parse_args()
+    print(args)
         
 
     main(experiment=args.experiment_name,
          epochs=args.epochs,
          model_path=args.model,
-         path=args.data, 
+         data_paths=args.data, 
          test_holdout=args.test_holdout, 
          batch_size=args.batch_size, 
          architecture=args.architecture)
