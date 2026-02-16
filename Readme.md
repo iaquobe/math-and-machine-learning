@@ -3,10 +3,11 @@
 This project explores the interaction between **Imitation Learning** and **Reward Shaping** in training chess agents. We evaluate how pretraining on **puzzle positions and grandmaster games** affects subsequent **REINFORCE policy gradient** fine-tuning across **FC**, **CNN**, and **ResNet** architectures. 
 
 ## Report
-A deailed report can be found under [Report](report/main.pdf).
+Our report can be found under [Report](report/main.pdf).
 
 ## Presentation
-A presentation as a video can be found under [Presentation](presentation.mov).
+A presentation as a video can be found under [Presentation](slides/presentation.mov)
+with the corresponding [Slides](slides/main.pdf).
 
 ## Installation
 
